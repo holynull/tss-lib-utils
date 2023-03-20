@@ -1,0 +1,11 @@
+/.idea
+/vendor
+.DS_Store
+*.log
+config.yml
+config.prod.yml
+conf.prod.yml
+*.tar
+*.tar.gz
+*.zip
+build/
