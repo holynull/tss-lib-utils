@@ -4,10 +4,13 @@ go 1.19
 
 replace github.com/bnb-chain/tss-lib => github.com/rayhopf/tss-lib v1.3.8
 
+replace github.com/agl/ed25519 => github.com/binance-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
+
 require (
 	github.com/bnb-chain/tss-lib v0.0.0-00010101000000-000000000000
 	github.com/holynull/go-log v0.0.0-20221114030543-b4e00ebd8f15
 	golang.org/x/net v0.8.0
+	google.golang.org/protobuf v1.27.1
 )
 
 require (
@@ -30,5 +33,4 @@ require (
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	golang.org/x/sys v0.6.0 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
 )

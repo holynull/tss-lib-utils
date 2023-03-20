@@ -23,7 +23,7 @@ func StartSignParty(ctx context.Context, msg big.Int, mpcCtxIndexArr []int32, sk
 		partyIds = append(partyIds[:], *storedPartyIds[index])
 	}
 	mpcCtx := tss.NewPeerContext(storedPartyIds[:2])
-	params := tss.NewParameters(tss.S256(), mpcCtx, storedPartyIds[partyIndex], partyCount, threshold)
+	params := tss.NewParameters(tss.Edwards(), mpcCtx, storedPartyIds[partyIndex], partyCount, threshold)
 	endCh := make(chan common.SignatureData)
 	finalCh := make(chan common.SignatureData)
 	partyObj := signing.NewLocalParty(&msg, params, *sk, outCh, endCh)

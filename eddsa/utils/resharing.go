@@ -30,7 +30,7 @@ func StartNewOrOldParty(ctx context.Context, mpcCtxIndexArr []int32, sk keygen.L
 		partyId = *newPartyIDs[partyIndex]
 	}
 	params := tss.NewReSharingParameters(
-		tss.S256(),
+		tss.Edwards(),
 		oldCtx,
 		newCtx,
 		&partyId,

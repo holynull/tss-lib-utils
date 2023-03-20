@@ -17,7 +17,7 @@ func StartDKGParty(ctx context.Context, gid string, storedPartyIds tss.SortedPar
 	endCh := make(chan keygen.LocalPartySaveData)
 	finalCh := make(chan keygen.LocalPartySaveData)
 	mpcCtx := tss.NewPeerContext(storedPartyIds)
-	params := tss.NewParameters(tss.S256(), mpcCtx, storedPartyIds[partyIndex], partyCount, threshold)
+	params := tss.NewParameters(tss.Edwards(), mpcCtx, storedPartyIds[partyIndex], partyCount, threshold)
 	partyObj := keygen.NewLocalParty(params, outCh, endCh)
 	go func() {
 	Loop:
@@ -29,10 +29,27 @@ func StartDKGParty(ctx context.Context, gid string, storedPartyIds tss.SortedPar
 			case message := <-outCh:
 				Logger.Debug("DKG output data.")
 				msg := message.(tss.ParsedMessage)
+				// if message.GetTo() == nil {
+				// 	for _, P := range storedPartyIds {
+				// 		if P.Index == msg.GetFrom().Index {
+				// 			continue
+				// 		}
 				err := sendMsg(msg, gid)
 				if err != nil {
-					Logger.Errorf("[3]: %v", err)
+					Logger.Error(err)
 				}
+				// 	}
+				// } else {
+				// 	if message.GetTo()[0].Index == msg.GetFrom().Index {
+				// 		Logger.Error("party %d tried to send a message to itself (%d)", message.GetTo()[0].Index, msg.GetFrom().Index)
+				// 		continue
+				// 	}
+				// 	err := sendMsg(msg, gid)
+				// 	if err != nil {
+				// 		Logger.Error(err)
+				// 	}
+				// }
+
 			case result := <-endCh:
 				finalCh <- result
 				break Loop
