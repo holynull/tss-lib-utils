@@ -51,7 +51,11 @@ func StartSignParty(ctx context.Context, msg big.Int, mpcCtxIndexArr []int32, sk
 			}
 		}
 	}()
-	partyObj.Start()
+	err := partyObj.Start()
+	if err != nil {
+		Logger.Error(err)
+		return nil, nil
+	}
 	return partyObj, finalCh
 }
 

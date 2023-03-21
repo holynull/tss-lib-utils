@@ -60,7 +60,11 @@ func StartDKGParty(ctx context.Context, gid string, storedPartyIds tss.SortedPar
 			}
 		}
 	}()
-	partyObj.Start()
+	err := partyObj.Start()
+	if err != nil {
+		Logger.Error(err)
+		return nil, nil
+	}
 	return partyObj, finalCh
 }
 

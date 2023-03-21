@@ -11,7 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bnb-chain/tss-lib/eddsa/keygen"
+	"github.com/bnb-chain/tss-lib/common"
+	"github.com/bnb-chain/tss-lib/ecdsa/keygen"
 	"github.com/bnb-chain/tss-lib/tss"
 )
 
@@ -60,7 +61,12 @@ func TestDKG(t *testing.T) {
 				}
 				return nil
 			}
-			party, fch := StartDKGParty(ctx, gid, partyIDs, i, 2, 1, sendMsg)
+			preParam, err := keygen.GeneratePreParams(2 * time.Minute)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			party, fch := StartDKGParty(ctx, gid, preParam, partyIDs, i, 2, 1, sendMsg)
 			doneCh := make(chan string)
 		Loop:
 			for {
@@ -145,6 +151,7 @@ func TestSign(t *testing.T) {
 				return
 			}
 			sendMsg := func(msg tss.ParsedMessage, gid string) error {
+				time.Sleep(20 * time.Millisecond)
 				if msg.GetTo() == nil {
 					for pid := range recvCh {
 						t.Logf("Send message: to party %d, type %s", pid, msg.Type())
@@ -160,48 +167,56 @@ func TestSign(t *testing.T) {
 				}
 				return nil
 			}
-			partyObj, fch := StartSignParty(ctx, *unSignedMsg, []int32{0, 1}, &sk, gid, pIndex, partyCount, 1, sendMsg)
-			doneCh := make(chan string)
-		Loop:
-			for {
-				select {
-				case msg := <-recvCh[pIndex]:
-					t.Logf("Party %d Receive message: from party %d, type %s", pIndex, msg.GetFrom().Index, msg.Type())
-					go func() {
-						signedData, err := HandleSignMPCMessageFromOtherParty(partyObj, msg, fch)
-						if err != nil {
-							t.Error(err)
-							doneCh <- "done"
-							return
-						}
-						if signedData != nil {
-							signedDataJsonBytes, err := json.Marshal(signedData)
+			var partyObj tss.Party
+			var fch chan common.SignatureData
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				doneCh := make(chan string)
+			Loop:
+				for {
+					select {
+					case msg := <-recvCh[pIndex]:
+						t.Logf("Party %d Receive message: from party %d, type %s", pIndex, msg.GetFrom().Index, msg.Type())
+						go func() {
+							signedData, err := HandleSignMPCMessageFromOtherParty(partyObj, msg, fch)
 							if err != nil {
 								t.Error(err)
+								doneCh <- "done"
 								return
 							}
-							path, err := os.Getwd()
-							if err != nil {
-								t.Error(err)
-								return
+							if signedData != nil {
+								signedDataJsonBytes, err := json.Marshal(signedData)
+								if err != nil {
+									t.Error(err)
+									return
+								}
+								path, err := os.Getwd()
+								if err != nil {
+									t.Error(err)
+									return
+								}
+								fileName := fmt.Sprintf("signed_data_%d.json", pIndex)
+								fullName := fmt.Sprintf("%s/%s", path, fileName)
+								err = os.WriteFile(fullName, signedDataJsonBytes, os.ModePerm)
+								if err != nil {
+									t.Error(err)
+									return
+								}
+								t.Logf("Signed Data: %v", signedData)
+								doneCh <- "done"
 							}
-							fileName := fmt.Sprintf("signed_data_%d.json", pIndex)
-							fullName := fmt.Sprintf("%s/%s", path, fileName)
-							err = os.WriteFile(fullName, signedDataJsonBytes, os.ModePerm)
-							if err != nil {
-								t.Error(err)
-								return
-							}
-							t.Logf("Signed Data: %v", signedData)
-							doneCh <- "done"
-						}
-					}()
-				case <-doneCh:
-					break Loop
-				default:
-					continue Loop
+						}()
+					case <-doneCh:
+						break Loop
+					default:
+						continue Loop
+					}
 				}
-			}
+			}()
+			partyObj, fch = StartSignParty(ctx, *unSignedMsg, []int32{0, 1}, &sk, gid, pIndex, partyCount, 1, sendMsg)
+			wg.Wait()
 		}(i)
 	}
 	wg.Wait()
@@ -265,7 +280,7 @@ func TestResharing(t *testing.T) {
 				msg.GetTo()
 				return nil
 			}
-			partyObj, fch := StartNewOrOldParty(ctx, []int32{0, 1}, &sk, gid, pIndex, true, partyCount, 1, partyCount, 1, sendMsg)
+			partyObj, fch := StartNewOrOldParty(ctx, []int32{0, 1}, nil, &sk, gid, pIndex, true, partyCount, 1, partyCount, 1, sendMsg)
 		Loop:
 			for {
 				select {
@@ -322,7 +337,12 @@ func TestResharing(t *testing.T) {
 				msg.GetTo()
 				return nil
 			}
-			partyObj, fch := StartNewOrOldParty(ctx, []int32{0, 1}, &sk, gid, pIndex, false, partyCount, 1, partyCount, 1, sendMsg)
+			preParam, err := keygen.GeneratePreParams(2 * time.Minute)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			partyObj, fch := StartNewOrOldParty(ctx, []int32{0, 1}, preParam, &sk, gid, pIndex, false, partyCount, 1, partyCount, 1, sendMsg)
 		Loop:
 			for {
 				select {

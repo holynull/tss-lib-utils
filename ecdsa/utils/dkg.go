@@ -43,7 +43,11 @@ func StartDKGParty(ctx context.Context, gid string, localParam *keygen.LocalPreP
 			}
 		}
 	}()
-	partyObj.Start()
+	err := partyObj.Start()
+	if err != nil {
+		Logger.Error(err)
+		return nil, nil
+	}
 	return partyObj, finalCh
 }
 

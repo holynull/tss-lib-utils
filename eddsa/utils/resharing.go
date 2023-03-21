@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func StartNewOrOldParty(ctx context.Context, mpcCtxIndexArr []int32, sk keygen.LocalPartySaveData, gid string, partyIndex int, isOld bool, partyCount int, threshold int, nPartyCount int, nThreshold int, sendMsg func(tss.ParsedMessage, string) error) (tss.Party, chan keygen.LocalPartySaveData) {
+func StartNewOrOldParty(ctx context.Context, mpcCtxIndexArr []int32, sk *keygen.LocalPartySaveData, gid string, partyIndex int, isOld bool, partyCount int, threshold int, nPartyCount int, nThreshold int, sendMsg func(tss.ParsedMessage, string) error) (tss.Party, chan keygen.LocalPartySaveData) {
 	storedOldPartyIds := tools.GenerateTestPartyIDsUsingInputRandomKey(sk.Ks[0], partyCount, 0)
 	var oldParties []*tss.PartyID
 	for i := 0; i < len(mpcCtxIndexArr); i++ {
@@ -38,14 +38,14 @@ func StartNewOrOldParty(ctx context.Context, mpcCtxIndexArr []int32, sk keygen.L
 		threshold,
 		nPartyCount,
 		nThreshold)
-	save := keygen.NewLocalPartySaveData(partyCount)
 	outCh := make(chan tss.Message)
 	nEndCh := make(chan keygen.LocalPartySaveData)
 	finalCh := make(chan keygen.LocalPartySaveData)
 	var partyObj tss.Party
 	if isOld {
-		partyObj = resharing.NewLocalParty(params, sk, outCh, nEndCh)
+		partyObj = resharing.NewLocalParty(params, *sk, outCh, nEndCh)
 	} else {
+		save := keygen.NewLocalPartySaveData(nPartyCount)
 		partyObj = resharing.NewLocalParty(params, save, outCh, nEndCh)
 	}
 	go func() {
@@ -69,5 +69,10 @@ func StartNewOrOldParty(ctx context.Context, mpcCtxIndexArr []int32, sk keygen.L
 			}
 		}
 	}()
+	err := partyObj.Start()
+	if err != nil {
+		Logger.Error(err)
+		return nil, nil
+	}
 	return partyObj, finalCh
 }
